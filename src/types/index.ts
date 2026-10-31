@@ -41,22 +41,20 @@ export interface PrintJob {
   customer?: Pick<Customer, '_id' | 'name' | 'phone'>;
   fileName: string;
   material: Material;
-  weightInGrams: number;
-  printTimeHours: number;
-  cost: number;
+  printingCost: number;
+  designCost: number;
+  cost: number;           // always = printingCost + designCost
   status: PrintJobStatus;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreatePrintJobRequest {
-  customerId: string;
+  customerId?: string;
   fileName: string;
   material: Material;
-  weightInGrams: number;
-  printTimeHours: number;
-  materialRatePerGram: number;
-  timeRatePerHour: number;
+  printingCost: number;
+  designCost: number;
 }
 
 export interface UpdatePrintJobStatusRequest {

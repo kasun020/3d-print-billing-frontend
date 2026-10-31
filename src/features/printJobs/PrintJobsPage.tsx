@@ -61,10 +61,8 @@ const printJobSchema = z.object({
   customerId: z.string().optional(),
   fileName: z.string().min(1, 'File name is required'),
   material: z.enum(['PLA', 'ABS', 'PETG', 'Resin']),
-  weightInGrams: z.coerce.number().min(0.1, 'Weight must be > 0'),
-  printTimeHours: z.coerce.number().min(0.1, 'Time must be > 0'),
-  materialRatePerGram: z.coerce.number().min(0.1, 'Rate must be > 0'),
-  timeRatePerHour: z.coerce.number().min(0, 'Rate cannot be negative'),
+  printingCost: z.coerce.number().min(0, 'Cannot be negative'),
+  designCost:   z.coerce.number().min(0, 'Cannot be negative'),
   status: z.string().optional(),
 });
 type PrintJobFormData = z.infer<typeof printJobSchema>;
@@ -175,10 +173,8 @@ const PrintJobForm = ({ editingJob, onSuccess, onClose }: { editingJob: PrintJob
       customerId: editingJob?.customer?._id || '',
       fileName: editingJob?.fileName || '',
       material: (editingJob?.material as any) || 'PLA',
-      weightInGrams: editingJob?.weightInGrams || 0,
-      printTimeHours: editingJob?.printTimeHours || 0,
-      materialRatePerGram: editingJob?.materialRatePerGram || 15,
-      timeRatePerHour: editingJob?.timeRatePerHour || 200,
+      printingCost: editingJob?.printingCost ?? 0,
+      designCost:   editingJob?.designCost   ?? 0,
       status: editingJob?.status || 'Pending',
     },
   });
@@ -190,10 +186,8 @@ const PrintJobForm = ({ editingJob, onSuccess, onClose }: { editingJob: PrintJob
         customerId: editingJob.customer?._id || '',
         fileName: editingJob.fileName || '',
         material: (editingJob.material as any) || 'PLA',
-        weightInGrams: editingJob.weightInGrams || 0,
-        printTimeHours: editingJob.printTimeHours || 0,
-        materialRatePerGram: editingJob.materialRatePerGram || 15,
-        timeRatePerHour: editingJob.timeRatePerHour || 200,
+        printingCost: editingJob.printingCost ?? 0,
+        designCost:   editingJob.designCost   ?? 0,
         status: editingJob.status || 'Pending',
       });
     } else {
@@ -201,23 +195,16 @@ const PrintJobForm = ({ editingJob, onSuccess, onClose }: { editingJob: PrintJob
         customerId: '',
         fileName: '',
         material: 'PLA',
-        weightInGrams: 0,
-        printTimeHours: 0,
-        materialRatePerGram: 15,
-        timeRatePerHour: 200,
+        printingCost: 0,
+        designCost:   0,
         status: 'Pending',
       });
     }
   }, [editingJob, reset]);
 
-  const weight = useWatch({ control, name: 'weightInGrams' }) || 0;
-  const printTime = useWatch({ control, name: 'printTimeHours' }) || 0;
-  const matRate = useWatch({ control, name: 'materialRatePerGram' }) || 0;
-  const timeRate = useWatch({ control, name: 'timeRatePerHour' }) || 0;
-  
-  const materialCost = weight * matRate;
-  const timeCost = printTime * timeRate;
-  const estimatedCost = materialCost + timeCost;
+  const printingCostVal = useWatch({ control, name: 'printingCost' }) || 0;
+  const designCostVal   = useWatch({ control, name: 'designCost' })   || 0;
+  const totalCost = Number(printingCostVal) + Number(designCostVal);
 
   const selectedMaterial = watch('material');
   const selectedStatus = watch('status');
@@ -275,25 +262,25 @@ const PrintJobForm = ({ editingJob, onSuccess, onClose }: { editingJob: PrintJob
     <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
         
-        {/* Live Preview Card */}
+        {/* Live Cost Preview Card */}
         <Box sx={{ p: 2.5, borderRadius: '12px', bgcolor: '#11141F', border: '1px solid rgba(197, 160, 89, 0.2)', display: 'flex', flexDirection: 'column', gap: 1.5, position: 'relative', overflow: 'hidden' }}>
           <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 3, background: 'linear-gradient(90deg, #C5A059 0%, #E6C687 100%)' }} />
-          <Typography variant="caption" sx={{ color: '#C5A059', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cost Estimator</Typography>
+          <Typography variant="caption" sx={{ color: '#C5A059', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cost Summary</Typography>
           
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="caption" sx={{ color: '#94A3B8' }}>Material Cost</Typography>
-            <Typography variant="caption" sx={{ color: '#F8FAFC', fontFamily: "'JetBrains Mono', monospace" }}>Rs. {materialCost.toFixed(2)}</Typography>
+            <Typography variant="caption" sx={{ color: '#94A3B8' }}>Printing Cost</Typography>
+            <Typography variant="caption" sx={{ color: '#F8FAFC', fontFamily: "'JetBrains Mono', monospace" }}>Rs. {Number(printingCostVal).toFixed(2)}</Typography>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="caption" sx={{ color: '#94A3B8' }}>Machine Time Cost</Typography>
-            <Typography variant="caption" sx={{ color: '#F8FAFC', fontFamily: "'JetBrains Mono', monospace" }}>Rs. {timeCost.toFixed(2)}</Typography>
+            <Typography variant="caption" sx={{ color: '#94A3B8' }}>Design Cost</Typography>
+            <Typography variant="caption" sx={{ color: '#F8FAFC', fontFamily: "'JetBrains Mono', monospace" }}>Rs. {Number(designCostVal).toFixed(2)}</Typography>
           </Box>
           
           <Divider sx={{ borderColor: 'rgba(255,255,255,0.05)', my: 0.5 }} />
           
           {editingJob && (
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Previous Cost</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>Previous Total</Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary', textDecoration: 'line-through', fontFamily: "'JetBrains Mono', monospace" }}>
                 Rs. {editingJob.cost.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Typography>
@@ -301,9 +288,9 @@ const PrintJobForm = ({ editingJob, onSuccess, onClose }: { editingJob: PrintJob
           )}
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="body2" sx={{ color: '#F8FAFC', fontWeight: 600 }}>Estimated Total Cost</Typography>
+            <Typography variant="body2" sx={{ color: '#F8FAFC', fontWeight: 600 }}>Total Cost</Typography>
             <Typography variant="h6" sx={{ color: '#E6C687', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>
-              Rs. {estimatedCost.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              Rs. {totalCost.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Typography>
           </Box>
         </Box>
@@ -411,38 +398,19 @@ const PrintJobForm = ({ editingJob, onSuccess, onClose }: { editingJob: PrintJob
 
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Box sx={{ flex: 1 }}>
-            {fieldLabel('Weight', true)}
+            {fieldLabel('Printing Cost', true)}
             <TextField
-              fullWidth type="number" inputProps={{ step: '0.1' }} error={!!errors.weightInGrams} helperText={errors.weightInGrams?.message} disabled={isLoading} {...register('weightInGrams')}
+              fullWidth type="number" inputProps={{ step: '0.01', min: 0 }} error={!!errors.printingCost} helperText={errors.printingCost?.message} disabled={isLoading} {...register('printingCost')}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.03)', '&.Mui-focused fieldset': { borderColor: '#C5A059' }, '& input': { fontFamily: "'JetBrains Mono', monospace" } } }}
-              InputProps={{ endAdornment: <InputAdornment position="end"><Typography variant="caption" sx={{ color: 'text.disabled' }}>g</Typography></InputAdornment> }}
+              InputProps={{ startAdornment: <InputAdornment position="start"><Typography variant="caption" sx={{ color: 'text.disabled' }}>Rs.</Typography></InputAdornment> }}
             />
           </Box>
           <Box sx={{ flex: 1 }}>
-            {fieldLabel('Mat. Rate', true)}
+            {fieldLabel('Design Cost', true)}
             <TextField
-              fullWidth type="number" error={!!errors.materialRatePerGram} helperText={errors.materialRatePerGram?.message} disabled={isLoading} {...register('materialRatePerGram')}
+              fullWidth type="number" inputProps={{ step: '0.01', min: 0 }} error={!!errors.designCost} helperText={errors.designCost?.message} disabled={isLoading} {...register('designCost')}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.03)', '&.Mui-focused fieldset': { borderColor: '#C5A059' }, '& input': { fontFamily: "'JetBrains Mono', monospace" } } }}
-              InputProps={{ endAdornment: <InputAdornment position="end"><Typography variant="caption" sx={{ color: 'text.disabled' }}>Rs/g</Typography></InputAdornment> }}
-            />
-          </Box>
-        </Box>
-
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Box sx={{ flex: 1 }}>
-            {fieldLabel('Print Time', true)}
-            <TextField
-              fullWidth type="number" inputProps={{ step: '0.1' }} error={!!errors.printTimeHours} helperText={errors.printTimeHours?.message} disabled={isLoading} {...register('printTimeHours')}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.03)', '&.Mui-focused fieldset': { borderColor: '#C5A059' }, '& input': { fontFamily: "'JetBrains Mono', monospace" } } }}
-              InputProps={{ endAdornment: <InputAdornment position="end"><Typography variant="caption" sx={{ color: 'text.disabled' }}>hrs</Typography></InputAdornment> }}
-            />
-          </Box>
-          <Box sx={{ flex: 1 }}>
-            {fieldLabel('Time Rate', true)}
-            <TextField
-              fullWidth type="number" error={!!errors.timeRatePerHour} helperText={errors.timeRatePerHour?.message} disabled={isLoading} {...register('timeRatePerHour')}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: 'rgba(255,255,255,0.03)', '&.Mui-focused fieldset': { borderColor: '#C5A059' }, '& input': { fontFamily: "'JetBrains Mono', monospace" } } }}
-              InputProps={{ endAdornment: <InputAdornment position="end"><Typography variant="caption" sx={{ color: 'text.disabled' }}>Rs/hr</Typography></InputAdornment> }}
+              InputProps={{ startAdornment: <InputAdornment position="start"><Typography variant="caption" sx={{ color: 'text.disabled' }}>Rs.</Typography></InputAdornment> }}
             />
           </Box>
         </Box>
@@ -512,11 +480,12 @@ const PrintJobsPage = () => {
   };
 
   // Calculate KPIs
-  const totalJobsCount = printJobs.length;
+  const totalJobsCount  = printJobs.length;
   const activeJobsCount = printJobs.filter(j => j.status === 'Pending' || j.status === 'Printing').length;
-  const totalFilamentUsed = printJobs.reduce((sum, j) => sum + j.weightInGrams, 0);
-  const totalPrintTime = printJobs.reduce((sum, j) => sum + j.printTimeHours, 0);
-  const totalJobValue = printJobs.reduce((sum, j) => sum + j.cost, 0);
+  const completedCount  = printJobs.filter(j => j.status === 'Completed').length;
+  const totalJobValue   = printJobs.reduce((sum, j) => sum + j.cost, 0);
+  const totalPrintingCost = printJobs.reduce((sum, j) => sum + (j.printingCost || 0), 0);
+  const totalDesignCost   = printJobs.reduce((sum, j) => sum + (j.designCost   || 0), 0);
 
   // Filter Jobs
   const filteredJobs = useMemo(() => {
@@ -600,25 +569,25 @@ const PrintJobsPage = () => {
       },
     },
     {
-      field: 'weightInGrams',
-      headerName: 'WEIGHT',
-      width: 100,
+      field: 'printingCost',
+      headerName: 'PRINTING',
+      width: 120,
       renderCell: (params: GridRenderCellParams<PrintJob>) => (
         <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
           <Typography variant="body2" sx={{ fontFamily: "'JetBrains Mono', monospace", color: '#94A3B8', fontSize: '0.8rem' }}>
-            {params.value} g
+            Rs. {(params.value || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 })}
           </Typography>
         </Box>
       ),
     },
     {
-      field: 'printTimeHours',
-      headerName: 'TIME',
-      width: 90,
+      field: 'designCost',
+      headerName: 'DESIGN',
+      width: 110,
       renderCell: (params: GridRenderCellParams<PrintJob>) => (
         <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
           <Typography variant="body2" sx={{ fontFamily: "'JetBrains Mono', monospace", color: '#94A3B8', fontSize: '0.8rem' }}>
-            {params.value} hrs
+            Rs. {(params.value || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 })}
           </Typography>
         </Box>
       ),
@@ -713,16 +682,16 @@ const PrintJobsPage = () => {
       <motion.div variants={staggerContainer} initial="hidden" animate="visible">
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 2.5, mb: 3, width: '100%' }}>
           <motion.div variants={staggerItem} style={{ minWidth: 0, height: '100%' }}>
-            <StatCard label="Total Print Jobs" value={totalJobsCount} subtitle={`${activeJobsCount} jobs active or queued`} icon={<PrintRoundedIcon sx={{ fontSize: 20 }} />} color="#C5A059" />
+            <StatCard label="Total Print Jobs" value={totalJobsCount} subtitle={`${activeJobsCount} active · ${completedCount} completed`} icon={<PrintRoundedIcon sx={{ fontSize: 20 }} />} color="#C5A059" />
           </motion.div>
           <motion.div variants={staggerItem} style={{ minWidth: 0, height: '100%' }}>
             <StatCard label="In Progress / Queued" value={activeJobsCount} subtitle="Currently working" icon={<TimerRoundedIcon sx={{ fontSize: 20 }} />} color="#38BDF8" />
           </motion.div>
           <motion.div variants={staggerItem} style={{ minWidth: 0, height: '100%' }}>
-            <StatCard label="Total Filament Used" value={`${totalFilamentUsed.toLocaleString()} g`} subtitle={`${totalPrintTime} hrs total machine time`} icon={<ScaleRoundedIcon sx={{ fontSize: 20 }} />} color="#10B981" />
+            <StatCard label="Total Printing Cost" value={totalPrintingCost} subtitle={`Design: Rs. ${totalDesignCost.toLocaleString('en-LK', { minimumFractionDigits: 2 })}`} prefix="Rs. " icon={<ScaleRoundedIcon sx={{ fontSize: 20 }} />} color="#10B981" />
           </motion.div>
           <motion.div variants={staggerItem} style={{ minWidth: 0, height: '100%' }}>
-            <StatCard label="Total Job Value" value={totalJobValue} subtitle="Estimated gross value" prefix="Rs. " icon={<AttachMoneyRoundedIcon sx={{ fontSize: 20 }} />} color="#D97706" />
+            <StatCard label="Total Job Value" value={totalJobValue} subtitle="Printing + Design combined" prefix="Rs. " icon={<AttachMoneyRoundedIcon sx={{ fontSize: 20 }} />} color="#D97706" />
           </motion.div>
         </Box>
       </motion.div>
